@@ -116,35 +116,3 @@ The app includes mock API routes for development:
 npm run build
 npm start
 ```
-
-## Deployment
-
-### Vercel Deployment
-
-> [!WARNING]
-> **Login functionality will not work on Vercel deployment** due to mixed content security restrictions.
-
-**Why this happens:**
-- Vercel deploys the frontend with HTTPS (e.g., `https://buet-final-frontend.vercel.app/`)
-- The backend API uses HTTP (e.g., `http://api.bcf26.k8s.monzim.com/`)
-- Modern browsers block HTTP requests from HTTPS pages for security reasons (mixed content blocking)
-
-**Solutions:**
-1. **Use HTTPS for the backend API** (Recommended)
-   - Install a valid SSL certificate on your Kubernetes cluster
-   - Use Let's Encrypt with cert-manager for free SSL certificates
-   - Update `src/lib/api-client.ts` to use `https://` instead of `http://`
-
-2. **Deploy frontend with HTTP** (Not recommended for production)
-   - Use a custom deployment that doesn't enforce HTTPS
-   - Only suitable for internal/development environments
-
-3. **Test locally**
-   - Run `npm run dev` locally where mixed content restrictions don't apply
-   - Both frontend and backend can use HTTP on localhost
-
-**For production deployments**, always ensure both frontend and backend use HTTPS to avoid security issues and browser blocking.
-
-## License
-
-MIT
