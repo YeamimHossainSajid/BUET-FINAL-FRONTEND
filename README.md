@@ -111,6 +111,7 @@ The app includes mock API routes for development:
 
 ## Building for Production
 
+
 ```bash
 npm run build
 npm start
