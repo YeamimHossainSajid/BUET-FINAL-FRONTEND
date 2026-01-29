@@ -29,7 +29,6 @@ export function useWebSocket() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Mock mode: poll invalidation when no WS URL (for demo without backend)
     if (WS_MOCK && !WS_URL) {
       const interval = setInterval(() => {
         invalidateOrderQueries();
@@ -72,7 +71,6 @@ export function useWebSocket() {
             invalidateInventoryQueries();
           }
         } catch {
-          // ignore parse errors
         }
       };
     };

@@ -28,7 +28,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Desktop sidebar */}
       <aside
         className={cn(
           "hidden md:flex flex-col border-r bg-card transition-[width] duration-200 ease-in-out",
