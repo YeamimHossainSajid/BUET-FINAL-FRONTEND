@@ -106,13 +106,13 @@ export default function InventoryPage() {
   const items = data?.items ?? [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Inventory</h1>
-          <p className="text-muted-foreground">SKU search and stock levels.</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Inventory</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">SKU search and stock levels.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export inventory">
             <Download className="mr-2 h-4 w-4" />
             Export
@@ -124,10 +124,10 @@ export default function InventoryPage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
+        <CardHeader className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <CardTitle>Stock levels</CardTitle>
-            <CardDescription>Search by SKU and update quantities.</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Stock levels</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Search by SKU and update quantities.</CardDescription>
           </div>
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -152,7 +152,7 @@ export default function InventoryPage() {
             </div>
           )}
           {!isLoading && !isError && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((item) => {
                 const isLow = item.quantity <= item.minThreshold;
                 const bulkQty = bulkUpdates[item.id] ?? item.quantity;
@@ -167,10 +167,10 @@ export default function InventoryPage() {
                         <Package className={cn("h-5 w-5 shrink-0", isLow ? "text-amber-500" : "text-muted-foreground")} aria-hidden="true" />
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-2 sm:space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Quantity</span>
-                        <span className={cn("font-semibold", isLow && "text-destructive")}>
+                        <span className="text-xs sm:text-sm text-muted-foreground">Quantity</span>
+                        <span className={cn("font-semibold text-xs sm:text-sm", isLow && "text-destructive")}>
                           {item.quantity} / {item.minThreshold}
                         </span>
                       </div>
@@ -185,13 +185,13 @@ export default function InventoryPage() {
                               [item.id]: Number(e.target.value) || 0,
                             }))
                           }
-                          className="h-8 text-sm"
+                          className="h-8 text-xs sm:text-sm flex-1"
                           aria-label={`Update quantity for ${item.sku}`}
                         />
                         <Button
                           variant="outline"
                           size="sm"
-                          className="shrink-0"
+                          className="shrink-0 text-xs sm:text-sm"
                           onClick={() => {
                             setUpdateItem(item);
                             setUpdateQty(item.quantity);
@@ -211,12 +211,12 @@ export default function InventoryPage() {
       </Card>
 
       <Dialog open={!!updateItem} onOpenChange={(open) => !open && setUpdateItem(null)}>
-        <DialogContent aria-describedby="update-stock-desc">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg" aria-describedby="update-stock-desc">
           {updateItem && (
             <>
               <DialogHeader>
-                <DialogTitle>Update stock</DialogTitle>
-                <DialogDescription id="update-stock-desc">
+                <DialogTitle className="text-lg sm:text-xl">Update stock</DialogTitle>
+                <DialogDescription id="update-stock-desc" className="text-xs sm:text-sm">
                   Change quantity for {updateItem.sku} ({updateItem.name}).
                 </DialogDescription>
               </DialogHeader>

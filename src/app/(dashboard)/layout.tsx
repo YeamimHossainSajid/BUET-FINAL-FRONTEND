@@ -15,10 +15,12 @@ export default function DashboardLayout({
       <WebSocketConnector />
       <KeyboardShortcuts />
       <div className="flex h-screen flex-col md:flex-row">
-        <Sidebar />
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-auto p-4 md:p-6" role="main">
+          <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6" role="main">
             {children}
           </main>
           <Footer />

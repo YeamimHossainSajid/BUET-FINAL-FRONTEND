@@ -55,14 +55,14 @@ export default function AnalyticsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-muted-foreground">Order trends and revenue metrics.</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Analytics</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Order trends and revenue metrics.</p>
         </div>
         <Tabs value={period} onValueChange={(v) => setPeriod(v as "1h" | "24h" | "7d")}>
-          <TabsList className="grid w-full grid-cols-3 sm:w-auto" aria-label="Time period">
+          <TabsList className="grid w-full grid-cols-3 sm:w-auto text-xs sm:text-sm" aria-label="Time period">
             {PERIODS.map((p) => (
               <TabsTrigger key={p.value} value={p.value}>
                 {p.label}
@@ -79,17 +79,17 @@ export default function AnalyticsPage() {
         </div>
       )}
       {!isLoading && data && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Revenue</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Revenue</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-xl sm:text-2xl font-bold">
                 ${data.revenue.current.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <p className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
                 <TrendingUp className={cn("h-3 w-3", data.revenue.change >= 0 ? "text-green-600" : "text-destructive")} aria-hidden="true" />
                 {data.revenue.change >= 0 ? "+" : ""}
                 {data.revenue.change.toFixed(1)}% vs previous period
@@ -98,26 +98,26 @@ export default function AnalyticsPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Previous period</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Previous period</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-xl sm:text-2xl font-bold">
                 ${data.revenue.previous.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
-              <p className="text-xs text-muted-foreground">Comparison baseline</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Comparison baseline</p>
             </CardContent>
           </Card>
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Order trends</CardTitle>
-            <CardDescription>Orders over selected period.</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Order trends</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Orders over selected period.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full">
+            <div className="h-[250px] sm:h-[300px] w-full">
               {isLoading ? (
                 <Skeleton className="h-full w-full" />
               ) : isError ? (
@@ -145,11 +145,11 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Revenue trend</CardTitle>
-            <CardDescription>Revenue over selected period.</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Revenue trend</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Revenue over selected period.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full">
+            <div className="h-[250px] sm:h-[300px] w-full">
               {isLoading ? (
                 <Skeleton className="h-full w-full" />
               ) : isError ? (
@@ -172,11 +172,11 @@ export default function AnalyticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Top-selling products</CardTitle>
-          <CardDescription>Sales and revenue by product.</CardDescription>
+          <CardTitle className="text-base sm:text-lg">Top-selling products</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Sales and revenue by product.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] w-full">
+          <div className="h-[250px] sm:h-[300px] w-full">
             {isLoading ? (
               <Skeleton className="h-full w-full" />
             ) : isError ? (

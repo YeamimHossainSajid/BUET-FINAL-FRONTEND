@@ -154,13 +154,13 @@ export default function OrdersPage() {
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Orders</h1>
-          <p className="text-muted-foreground">Manage and track orders.</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Orders</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage and track orders.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export orders">
             <Download className="mr-2 h-4 w-4" />
             Export
@@ -173,12 +173,12 @@ export default function OrdersPage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
+        <CardHeader className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <CardTitle>Orders</CardTitle>
-            <CardDescription>Filter by status and paginate.</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Orders</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Filter by status and paginate.</CardDescription>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Select
               value={statusFilter}
               onValueChange={(v) => {
@@ -186,7 +186,7 @@ export default function OrdersPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[160px]" aria-label="Filter by status">
+              <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by status">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -213,7 +213,8 @@ export default function OrdersPage() {
           )}
           {!isLoading && !isError && data && (
             <>
-              <Table>
+              <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
@@ -250,9 +251,10 @@ export default function OrdersPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
               {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
+                <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Page {page} of {totalPages} ({data.total} total)
                   </p>
                   <div className="flex gap-2">
@@ -283,10 +285,10 @@ export default function OrdersPage() {
       </Card>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent aria-describedby="create-order-desc">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg" aria-describedby="create-order-desc">
           <DialogHeader>
-            <DialogTitle>Create order</DialogTitle>
-            <DialogDescription id="create-order-desc">
+            <DialogTitle className="text-lg sm:text-xl">Create order</DialogTitle>
+            <DialogDescription id="create-order-desc" className="text-xs sm:text-sm">
               Enter SKU and quantity. Customer ID is taken from your profile.
             </DialogDescription>
           </DialogHeader>
@@ -327,7 +329,7 @@ export default function OrdersPage() {
       </Dialog>
 
       <Sheet open={!!detailOrder} onOpenChange={(open) => !open && setDetailOrder(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-md">
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
           {detailOrder && (
             <>
               <SheetHeader>

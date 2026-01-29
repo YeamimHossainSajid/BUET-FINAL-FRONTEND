@@ -66,13 +66,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your e-commerce metrics.</p>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Overview of your e-commerce metrics.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
@@ -153,38 +153,40 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(data?.recentOrders ?? []).map((o) => (
-                    <TableRow key={o.id}>
-                      <TableCell className="font-mono text-xs">{o.id}</TableCell>
-                      <TableCell>{o.sku}</TableCell>
-                      <TableCell>{o.quantity}</TableCell>
-                      <TableCell>
-                        <Badge variant={statusVariant[o.status]}>{o.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">${o.total.toFixed(2)}</TableCell>
+              <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order</TableHead>
+                      <TableHead>SKU</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {(data?.recentOrders ?? []).map((o) => (
+                      <TableRow key={o.id}>
+                        <TableCell className="font-mono text-xs">{o.id}</TableCell>
+                        <TableCell>{o.sku}</TableCell>
+                        <TableCell>{o.quantity}</TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariant[o.status]}>{o.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">${o.total.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Low Inventory Alerts</CardTitle>
-            <CardDescription>Items below threshold.</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Low Inventory Alerts</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Items below threshold.</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -194,21 +196,21 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <ul className="space-y-3" role="list">
+              <ul className="space-y-2 sm:space-y-3" role="list">
                 {(data?.lowInventory ?? []).map((item) => (
                   <li
                     key={item.sku}
-                    className="flex items-center justify-between rounded-lg border p-3"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border p-3"
                   >
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">{item.sku}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm sm:text-base truncate">{item.name}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground font-mono">{item.sku}</p>
                     </div>
-                    <div className="text-right">
-                      <p className={cn("font-semibold", item.quantity <= item.minThreshold && "text-destructive")}>
+                    <div className="flex items-center justify-between sm:flex-col sm:items-end sm:justify-center gap-2">
+                      <p className={cn("font-semibold text-sm sm:text-base", item.quantity <= item.minThreshold && "text-destructive")}>
                         {item.quantity} / {item.minThreshold}
                       </p>
-                      <Button variant="outline" size="sm" asChild>
+                      <Button variant="outline" size="sm" asChild className="text-xs sm:text-sm shrink-0">
                         <Link href="/inventory">Update</Link>
                       </Button>
                     </div>
@@ -222,11 +224,11 @@ export default function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Order Trends</CardTitle>
-          <CardDescription>Real-time metrics (mock trend).</CardDescription>
+          <CardTitle className="text-base sm:text-lg">Order Trends</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Real-time metrics (mock trend).</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] w-full">
+          <div className="h-[250px] sm:h-[300px] w-full">
             {isLoading ? (
               <Skeleton className="h-full w-full" />
             ) : (
@@ -250,8 +252,8 @@ export default function DashboardPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" className="text-xs" />
-                  <YAxis className="text-xs" />
+                  <XAxis dataKey="name" className="text-[10px] sm:text-xs" />
+                  <YAxis className="text-[10px] sm:text-xs" />
                   <Tooltip contentStyle={{ borderRadius: "var(--radius)" }} />
                   <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorValue)" />
                 </AreaChart>

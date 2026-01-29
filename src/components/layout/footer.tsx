@@ -56,10 +56,10 @@ export function Footer() {
 
   return (
     <footer
-      className="flex h-10 items-center justify-between border-t bg-muted/30 px-4 text-xs text-muted-foreground"
+      className="flex h-auto sm:h-10 flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 border-t bg-muted/30 px-3 sm:px-4 py-2 sm:py-0 text-[10px] sm:text-xs text-muted-foreground"
       role="contentinfo"
     >
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4">
         <span className="flex items-center gap-1.5" aria-label="Network status">
           {isOnline ? (
             <Wifi className="h-3.5 w-3.5 text-green-600" aria-hidden="true" />
