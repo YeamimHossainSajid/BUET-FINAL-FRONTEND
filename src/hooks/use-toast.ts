@@ -12,6 +12,7 @@ type ToasterToast = ToastProps & {
   description?: React.ReactNode;
   action?: ToastActionElement;
   variant?: "default" | "destructive" | "success" | "warning";
+  duration?: number;
 };
 
 const actionTypes = {
@@ -103,7 +104,7 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
-function toast({ ...props }: Toast) {
+function toast({ duration, ...props }: Toast) {
   const id = genId();
   const update = (props: ToasterToast) =>
     dispatch({ type: "UPDATE_TOAST", toast: { ...props, id } });
@@ -119,6 +120,9 @@ function toast({ ...props }: Toast) {
       },
     },
   });
+  if (typeof duration === "number" && duration > 0) {
+    setTimeout(() => dismiss(), duration);
+  }
   return { id, update, dismiss };
 }
 

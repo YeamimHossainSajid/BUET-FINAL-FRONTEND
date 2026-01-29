@@ -58,6 +58,7 @@ export default function LoginPage() {
         title: "Signed in",
         description: "Redirecting to dashboard.",
         variant: "success",
+        duration: 1000,
       });
       router.push("/dashboard");
       router.refresh();
