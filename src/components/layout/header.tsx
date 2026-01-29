@@ -125,8 +125,8 @@ export function Header() {
           onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
           aria-label="Toggle dark mode"
         />
-        <DropdownMenu open={openNotifications} onOpenChange={setOpenNotifications}>
-          <DropdownMenuTrigger asChild>
+        <Sheet open={openNotifications} onOpenChange={setOpenNotifications}>
+          <SheetTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
@@ -141,62 +141,61 @@ export function Header() {
                 </span>
               )}
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            align="end" 
-            side="bottom"
-            sideOffset={8}
-            alignOffset={0}
-            collisionPadding={16}
-            className="w-[calc(100vw-2rem)] sm:w-96 max-w-[calc(100vw-2rem)] sm:max-w-md bg-background border shadow-xl"
-            style={{ 
-              maxHeight: 'calc(100vh - 5rem)',
-              backgroundColor: 'hsl(var(--background))',
-              opacity: 1,
-            }}
-          >
-            <DropdownMenuLabel className="flex items-center justify-between bg-background sticky top-0 z-10 border-b pb-2 -mx-1 px-3 pt-2 mb-1">
-              <span className="font-semibold text-foreground">Notifications</span>
+          </SheetTrigger>
+          <SheetContent side="right" showClose={false} className="!w-[50vw] min-w-[280px] p-0 flex flex-col">
+            <div className="flex h-14 items-center justify-between border-b px-4 shrink-0">
+              <h2 className="font-semibold text-foreground text-sm sm:text-base">Notifications</h2>
               <span className="text-xs text-muted-foreground">
                 {notifications.filter((n) => !n.read).length} unread
               </span>
-            </DropdownMenuLabel>
-            <div className="max-h-[calc(100vh-10rem)] overflow-y-auto -mx-1 px-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setOpenNotifications(false)}
+                aria-label="Close notifications"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y px-4 py-2">
               {notifications.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-muted-foreground bg-background">
+                <div className="py-8 text-center text-sm text-muted-foreground">
                   No notifications
                 </div>
               ) : (
-                <div className="py-1">
+                <ul className="space-y-1">
                   {notifications.map((notification) => (
-                    <DropdownMenuItem
+                    <li
                       key={notification.id}
-                      className="flex flex-col items-start gap-1 p-3 cursor-default bg-background hover:bg-accent focus:bg-accent rounded-md mb-1"
-                      onSelect={(e) => e.preventDefault()}
+                      className={cn(
+                        "rounded-lg p-3 cursor-default transition-colors",
+                        "hover:bg-accent focus-within:bg-accent",
+                        "border border-transparent hover:border-border"
+                      )}
                     >
-                      <div className="flex items-start justify-between w-full gap-2">
+                      <div className="flex items-start justify-between gap-2 min-w-0">
                         <div className="flex-1 min-w-0">
                           <p className={cn(
-                            "text-sm font-medium text-foreground",
+                            "text-sm font-medium text-foreground break-words",
                             !notification.read && "font-semibold"
                           )}>
                             {notification.title}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-0.5 break-words">
                             {notification.message}
                           </p>
                         </div>
                         {!notification.read && (
-                          <span className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
+                          <span className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1 flex-shrink-0" />
                         )}
                       </div>
-                    </DropdownMenuItem>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
             </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </SheetContent>
+        </Sheet>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full" aria-label="User menu">
