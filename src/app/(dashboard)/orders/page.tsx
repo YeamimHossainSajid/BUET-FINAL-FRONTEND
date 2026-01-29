@@ -58,6 +58,7 @@ import { Plus, Truck, Search, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/stores/auth-store";
+import { generateIdempotencyKey } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -98,7 +99,7 @@ export default function OrdersPage() {
         limit: String(PAGE_SIZE)
       });
       if (statusFilter !== "all") params.set("status", statusFilter);
-      const res = await apiClient.get<{ items: Order[]; total: number }>(
+      const res = await apiClient.get<{ orders: Order[]; total: number }>(
         `/api/v1/orders?${params}`
       );
       return res.data;
@@ -106,7 +107,7 @@ export default function OrdersPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: { customer_id: string; items: { sku: string; quantity: number; price_cents: number }[] }) => {
+    mutationFn: async (payload: { customer_id: string; idempotency_key: string; items: { sku: string; quantity: number; price_cents: number }[] }) => {
       const res = await apiClient.post<{ order: Order }>("/api/v1/orders", payload);
       return res.data;
     },
@@ -147,6 +148,7 @@ export default function OrdersPage() {
     // Mock price_cents for now as it's not in the creation UI
     createMutation.mutate({
       customer_id: customerId,
+      idempotency_key: generateIdempotencyKey(),
       items: [{ sku: createSku.trim(), quantity: createQty, price_cents: 1000 }]
     });
   };
@@ -156,8 +158,8 @@ export default function OrdersPage() {
   };
 
   const handleExport = () => {
-    const items = data?.items ?? [];
-    const csv = ["id,customer_id,status,total_cents,created_at", ...items.map((o) => `${o.id},${o.customer_id},${o.status},${o.total_cents},${o.created_at}`)].join("\n");
+    const orders = data?.orders ?? [];
+    const csv = ["id,customer_id,status,total_cents,created_at", ...orders.map((o) => `${o.id},${o.customer_id},${o.status},${o.total_cents},${o.created_at}`)].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -243,7 +245,7 @@ export default function OrdersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.items.map((order) => (
+                    {data.orders.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-mono text-xs">{order.id.split("-")[0]}…</TableCell>
                         <TableCell className="text-xs">{order.customer_id}</TableCell>
@@ -264,7 +266,7 @@ export default function OrdersPage() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {data.items.length === 0 && (
+                    {data.orders.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                           No orders found.
@@ -307,7 +309,7 @@ export default function OrdersPage() {
       </Card>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg" aria-describedby="create-order-desc">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">Create order</DialogTitle>
             <DialogDescription id="create-order-desc" className="text-xs sm:text-sm">

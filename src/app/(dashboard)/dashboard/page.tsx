@@ -56,7 +56,7 @@ export default function DashboardPage() {
   const { data: ordersData, isLoading: isOrdersLoading } = useQuery({
     queryKey: ["recent-orders"],
     queryFn: async () => {
-      const res = await apiClient.get<{ items: Order[] }>("/api/v1/orders", {
+      const res = await apiClient.get<{ orders: Order[] }>("/api/v1/orders", {
         params: { limit: 5 }
       });
       return res.data;
@@ -172,7 +172,7 @@ export default function DashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(ordersData?.items ?? []).map((o) => (
+                    {(ordersData?.orders ?? []).map((o) => (
                       <TableRow key={o.id}>
                         <TableCell className="font-mono text-xs">{o.id}</TableCell>
                         <TableCell>
@@ -181,7 +181,7 @@ export default function DashboardPage() {
                         <TableCell className="text-right">${(o.total_cents / 100).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
-                    {(!ordersData?.items || ordersData.items.length === 0) && (
+                    {(!ordersData?.orders || ordersData.orders.length === 0) && (
                       <TableRow>
                         <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
                           No recent orders found.

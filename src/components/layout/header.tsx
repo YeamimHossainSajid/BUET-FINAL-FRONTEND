@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
@@ -54,17 +57,23 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { data: notificationsData } = useQuery({
-    queryKey: ["notifications"],
+    queryKey: ["notifications", customerId],
     queryFn: async () => {
-      const res = await apiClient.get<Notification[]>("/api/v1/notifications");
-      return res.data;
+      if (!customerId) return [];
+      const res = await apiClient.get<{ notifications?: Notification[] }>("/api/v1/notifications", {
+        params: { user_id: customerId }
+      });
+      return res.data?.notifications ?? [];
     },
+    enabled: !!customerId,
     refetchInterval: 30000, // Refresh every 30s
   });
 
   const markReadMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiClient.post(`/api/v1/notifications/${id}/read`);
+      await apiClient.post(`/api/v1/notifications/${id}/read`, null, {
+        params: { user_id: customerId }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -97,6 +106,10 @@ export function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0 sm:w-80" showClose={false}>
+            <SheetHeader className="sr-only">
+              <SheetTitle>Navigation Menu</SheetTitle>
+              <SheetDescription>Access dashboard, orders, and inventory.</SheetDescription>
+            </SheetHeader>
             <div className="flex h-14 items-center justify-between border-b px-4">
               <Link
                 href="/dashboard"
@@ -163,11 +176,13 @@ export function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" showClose={false} className="!w-[50vw] min-w-[280px] p-0 flex flex-col">
-            <div className="flex h-14 items-center justify-between border-b px-4 shrink-0">
-              <h2 className="font-semibold text-foreground text-sm sm:text-base">Notifications</h2>
-              <span className="text-xs text-muted-foreground">
-                {unreadCount} unread
-              </span>
+            <SheetHeader className="px-4 py-3 border-b shrink-0 flex flex-row items-center justify-between space-y-0">
+              <div className="flex flex-col">
+                <SheetTitle className="text-sm sm:text-base font-semibold">Notifications</SheetTitle>
+                <SheetDescription className="text-xs">
+                  {unreadCount} unread
+                </SheetDescription>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -176,7 +191,7 @@ export function Header() {
               >
                 <X className="h-4 w-4" />
               </Button>
-            </div>
+            </SheetHeader>
             <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y px-4 py-2">
               {notifications.length === 0 ? (
                 <div className="py-8 text-center text-sm text-muted-foreground">

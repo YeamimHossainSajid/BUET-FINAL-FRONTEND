@@ -4,7 +4,7 @@ import axios, { type InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/stores/auth-store";
 import { generateIdempotencyKey } from "./utils";
 
-const API_BASE = "https://api.valerix.monzim.com";
+const API_BASE = "http://api.bcf26.k8s.monzim.com/";
 
 export const apiClient = axios.create({
   baseURL: API_BASE,
