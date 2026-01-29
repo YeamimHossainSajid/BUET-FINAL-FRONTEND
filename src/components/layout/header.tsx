@@ -32,19 +32,18 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const notifications = [
-  { id: "1", title: "New order", message: "Order #1234 placed", read: false },
-  { id: "2", title: "Low stock", message: "SKU ABC-001 below threshold", read: true },
-];
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
+import type { Notification } from "@/types";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/orders", label: "Orders", icon: ShoppingCart },
   { href: "/inventory", label: "Inventory", icon: Package },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 export function Header() {
+  const queryClient = useQueryClient();
   const pathname = usePathname();
   const theme = useUIStore((s) => s.theme);
   const setTheme = useUIStore((s) => s.setTheme);
@@ -53,6 +52,27 @@ export function Header() {
   const router = useRouter();
   const [openNotifications, setOpenNotifications] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const { data: notificationsData } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      const res = await apiClient.get<Notification[]>("/api/v1/notifications");
+      return res.data;
+    },
+    refetchInterval: 30000, // Refresh every 30s
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.post(`/api/v1/notifications/${id}/read`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const notifications = notificationsData ?? [];
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleLogout = () => {
     logout();
@@ -83,7 +103,7 @@ export function Header() {
                 className="font-semibold text-primary"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                E-Commerce
+                Valerix Admin
               </Link>
               <Button
                 variant="ghost"
@@ -135,9 +155,9 @@ export function Header() {
               aria-expanded={openNotifications}
             >
               <Bell className="h-5 w-5" />
-              {notifications.filter((n) => !n.read).length > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
-                  {notifications.filter((n) => !n.read).length}
+                  {unreadCount}
                 </span>
               )}
             </Button>
@@ -146,7 +166,7 @@ export function Header() {
             <div className="flex h-14 items-center justify-between border-b px-4 shrink-0">
               <h2 className="font-semibold text-foreground text-sm sm:text-base">Notifications</h2>
               <span className="text-xs text-muted-foreground">
-                {notifications.filter((n) => !n.read).length} unread
+                {unreadCount} unread
               </span>
               <Button
                 variant="ghost"
@@ -164,28 +184,30 @@ export function Header() {
                 </div>
               ) : (
                 <ul className="space-y-1">
-                  {notifications.map((notification) => (
+                  {notifications.map((n) => (
                     <li
-                      key={notification.id}
+                      key={n.id}
+                      onClick={() => !n.read && markReadMutation.mutate(n.id)}
                       className={cn(
                         "rounded-lg p-3 cursor-default transition-colors",
                         "hover:bg-accent focus-within:bg-accent",
-                        "border border-transparent hover:border-border"
+                        "border border-transparent hover:border-border",
+                        !n.read && "bg-primary/5"
                       )}
                     >
                       <div className="flex items-start justify-between gap-2 min-w-0">
                         <div className="flex-1 min-w-0">
                           <p className={cn(
                             "text-sm font-medium text-foreground break-words",
-                            !notification.read && "font-semibold"
+                            !n.read && "font-semibold"
                           )}>
-                            {notification.title}
+                            {n.title}
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5 break-words">
-                            {notification.message}
+                            {n.message}
                           </p>
                         </div>
-                        {!notification.read && (
+                        {!n.read && (
                           <span className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1 flex-shrink-0" />
                         )}
                       </div>

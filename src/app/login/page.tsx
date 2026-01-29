@@ -16,7 +16,6 @@ import { Loader2 } from "lucide-react";
 
 const schema = z.object({
   customerId: z.string().min(1, "Customer ID is required"),
-  token: z.string().min(1, "Token is required"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -34,23 +33,22 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { customerId: "", token: "" },
+    defaultValues: { customerId: "" },
   });
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
       const res = await apiClient.post<{
-        accessToken: string;
-        refreshToken: string;
-        expiresAt: number;
-      }>("/api/auth/login", {
-        customerId: data.customerId,
-        token: data.token,
+        token: string;
+        expires_at: string;
+      }>("/api/v1/auth/token", {
+        customer_id: data.customerId,
       });
-      const expiresAt = res.data.expiresAt ?? Date.now() + 3600 * 1000;
-      setTokens(res.data.accessToken, res.data.refreshToken, expiresAt, data.customerId);
+
+      setTokens(res.data.token, res.data.expires_at, data.customerId);
       setCustomerId(data.customerId);
+
       if (typeof window !== "undefined") {
         sessionStorage.setItem("ecom_customer_id", data.customerId);
       }
@@ -65,7 +63,7 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const message = err && typeof err === "object" && "response" in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
-        : "Invalid credentials";
+        : "Failed to generate token";
       toast({
         title: "Sign in failed",
         description: String(message),
@@ -81,7 +79,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
           <CardTitle className="text-xl sm:text-2xl">Sign in</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">Enter your customer ID and token to access the dashboard.</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">Enter your customer ID to access the dashboard.</CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -98,23 +96,6 @@ export default function LoginPage() {
               {errors.customerId && (
                 <p id="customerId-error" className="text-sm text-destructive" role="alert">
                   {errors.customerId.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="token">Token</Label>
-              <Input
-                id="token"
-                type="password"
-                placeholder="Your token"
-                autoComplete="current-password"
-                {...register("token")}
-                aria-invalid={!!errors.token}
-                aria-describedby={errors.token ? "token-error" : undefined}
-              />
-              {errors.token && (
-                <p id="token-error" className="text-sm text-destructive" role="alert">
-                  {errors.token.message}
                 </p>
               )}
             </div>

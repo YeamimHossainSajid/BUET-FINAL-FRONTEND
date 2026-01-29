@@ -63,7 +63,7 @@ import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: { value: OrderStatus; label: string }[] = [
   { value: "pending", label: "Pending" },
-  { value: "processing", label: "Processing" },
+  { value: "confirmed", label: "Confirmed" },
   { value: "shipped", label: "Shipped" },
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
@@ -71,7 +71,7 @@ const STATUS_OPTIONS: { value: OrderStatus; label: string }[] = [
 
 const statusVariant: Record<OrderStatus, "pending" | "processing" | "shipped" | "delivered" | "cancelled"> = {
   pending: "pending",
-  processing: "processing",
+  confirmed: "processing",
   shipped: "shipped",
   delivered: "delivered",
   cancelled: "cancelled",
@@ -87,30 +87,32 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
-  const [deleteOrderId, setDeleteOrderId] = useState<string | null>(null);
   const [createSku, setCreateSku] = useState("");
   const [createQty, setCreateQty] = useState(1);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["orders", statusFilter, page],
     queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      const params = new URLSearchParams({
+        offset: String((page - 1) * PAGE_SIZE),
+        limit: String(PAGE_SIZE)
+      });
       if (statusFilter !== "all") params.set("status", statusFilter);
-      const res = await apiClient.get<{ items: Order[]; total: number; page: number; limit: number }>(
-        `/api/orders?${params}`
+      const res = await apiClient.get<{ items: Order[]; total: number }>(
+        `/api/v1/orders?${params}`
       );
       return res.data;
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: { customerId: string; sku: string; quantity: number }) => {
-      const res = await apiClient.post<Order>("/api/orders", payload);
+    mutationFn: async (payload: { customer_id: string; items: { sku: string; quantity: number; price_cents: number }[] }) => {
+      const res = await apiClient.post<{ order: Order }>("/api/v1/orders", payload);
       return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
       setCreateOpen(false);
       setCreateSku("");
       setCreateQty(1);
@@ -124,23 +126,38 @@ export default function OrdersPage() {
     },
   });
 
+  const shipMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.post(`/api/v1/orders/${id}/ship`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
+      setDetailOrder(null);
+      toast({ title: "Shipped", description: "Order has been marked as shipped.", variant: "success" });
+    },
+  });
+
   const handleCreate = () => {
     if (!customerId || !createSku.trim() || createQty < 1) {
       toast({ title: "Invalid input", description: "SKU and quantity required.", variant: "destructive" });
       return;
     }
-    createMutation.mutate({ customerId, sku: createSku.trim(), quantity: createQty });
+    // Mock price_cents for now as it's not in the creation UI
+    createMutation.mutate({
+      customer_id: customerId,
+      items: [{ sku: createSku.trim(), quantity: createQty, price_cents: 1000 }]
+    });
   };
 
   const handleShip = (order: Order) => {
-    toast({ title: "Shipping", description: `Order ${order.id} marked as shipped.` });
-    setDetailOrder(null);
-    queryClient.invalidateQueries({ queryKey: ["orders"] });
+    shipMutation.mutate(order.id);
   };
 
   const handleExport = () => {
     const items = data?.items ?? [];
-    const csv = ["id,customerId,sku,quantity,status,total,createdAt", ...items.map((o) => `${o.id},${o.customerId},${o.sku},${o.quantity},${o.status},${o.total},${o.createdAt}`)].join("\n");
+    const csv = ["id,customer_id,status,total_cents,created_at", ...items.map((o) => `${o.id},${o.customer_id},${o.status},${o.total_cents},${o.created_at}`)].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -158,7 +175,7 @@ export default function OrdersPage() {
       <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Orders</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Manage and track orders.</p>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage and track orders from Valerix API.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export orders">
@@ -175,7 +192,7 @@ export default function OrdersPage() {
       <Card>
         <CardHeader className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <CardTitle className="text-base sm:text-lg">Orders</CardTitle>
+            <CardTitle className="text-base sm:text-lg">Order List</CardTitle>
             <CardDescription className="text-xs sm:text-sm">Filter by status and paginate.</CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -190,7 +207,7 @@ export default function OrdersPage() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
                 {STATUS_OPTIONS.map((o) => (
                   <SelectItem key={o.value} value={o.value}>
                     {o.label}
@@ -215,42 +232,47 @@ export default function OrdersPage() {
             <>
               <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
                 <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="w-[80px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.items.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-mono text-xs">{order.id}</TableCell>
-                      <TableCell>{order.customerId}</TableCell>
-                      <TableCell>{order.sku}</TableCell>
-                      <TableCell>{order.quantity}</TableCell>
-                      <TableCell>
-                        <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDetailOrder(order)}
-                          aria-label={`View order ${order.id}`}
-                        >
-                          View
-                        </Button>
-                      </TableCell>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="w-[80px]">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {data.items.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-mono text-xs">{order.id.split("-")[0]}…</TableCell>
+                        <TableCell className="text-xs">{order.customer_id}</TableCell>
+                        <TableCell>{order.items?.length ?? 0} sku(s)</TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariant[order.status]}>{order.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">${(order.total_cents / 100).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDetailOrder(order)}
+                            aria-label={`View order ${order.id}`}
+                          >
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {data.items.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          No orders found.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </div>
               {totalPages > 1 && (
                 <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -289,7 +311,7 @@ export default function OrdersPage() {
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">Create order</DialogTitle>
             <DialogDescription id="create-order-desc" className="text-xs sm:text-sm">
-              Enter SKU and quantity. Customer ID is taken from your profile.
+              Enter SKU and quantity. Item will be added with a default mock price.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -297,10 +319,9 @@ export default function OrdersPage() {
               <Label htmlFor="create-sku">SKU</Label>
               <Input
                 id="create-sku"
-                placeholder="e.g. SKU-001"
+                placeholder="e.g. WIDGET-001"
                 value={createSku}
                 onChange={(e) => setCreateSku(e.target.value)}
-                aria-describedby="create-order-desc"
               />
             </div>
             <div className="grid gap-2">
@@ -333,44 +354,53 @@ export default function OrdersPage() {
           {detailOrder && (
             <>
               <SheetHeader>
-                <SheetTitle>Order {detailOrder.id}</SheetTitle>
-                <SheetDescription>Details and shipping action.</SheetDescription>
+                <SheetTitle>Order Details</SheetTitle>
+                <SheetDescription className="font-mono text-xs">{detailOrder.id}</SheetDescription>
               </SheetHeader>
-              <div className="mt-6 space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Customer</p>
-                  <p className="font-medium">{detailOrder.customerId}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">SKU</p>
-                  <p className="font-medium">{detailOrder.sku}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Quantity</p>
-                  <p className="font-medium">{detailOrder.quantity}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={statusVariant[detailOrder.status]}>{detailOrder.status}</Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="font-medium">${detailOrder.total.toFixed(2)}</p>
-                </div>
-                {detailOrder.shippingAddress && (
+              <div className="mt-6 space-y-6">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Shipping address</p>
-                    <p className="font-medium">{detailOrder.shippingAddress}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Status</p>
+                    <Badge variant={statusVariant[detailOrder.status]} className="mt-1">{detailOrder.status}</Badge>
                   </div>
-                )}
-                {detailOrder.status === "pending" || detailOrder.status === "processing" ? (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Total</p>
+                    <p className="font-semibold text-lg">${(detailOrder.total_cents / 100).toFixed(2)}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Items</p>
+                  <div className="space-y-2">
+                    {detailOrder.items.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                        <div>
+                          <p className="font-medium text-sm">{item.sku}</p>
+                          <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                        </div>
+                        <p className="text-sm font-medium">${(item.price_cents / 100).toFixed(2)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Metadata</p>
+                  <div className="mt-2 space-y-1 text-sm">
+                    <p><span className="text-muted-foreground">Customer:</span> {detailOrder.customer_id}</p>
+                    <p><span className="text-muted-foreground">Created:</span> {new Date(detailOrder.created_at).toLocaleString()}</p>
+                    <p><span className="text-muted-foreground">Idempotency:</span> {detailOrder.idempotency_key}</p>
+                  </div>
+                </div>
+
+                {detailOrder.status === "pending" || detailOrder.status === "confirmed" ? (
                   <Button
                     className="w-full"
                     onClick={() => handleShip(detailOrder)}
-                    aria-label="Mark as shipped"
+                    disabled={shipMutation.isPending}
                   >
                     <Truck className="mr-2 h-4 w-4" />
-                    Mark as shipped
+                    {shipMutation.isPending ? "Shipping…" : "Mark as shipped"}
                   </Button>
                 ) : null}
               </div>
@@ -378,30 +408,6 @@ export default function OrdersPage() {
           )}
         </SheetContent>
       </Sheet>
-
-      <AlertDialog open={!!deleteOrderId} onOpenChange={(open) => !open && setDeleteOrderId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel order?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. The order will be marked as cancelled.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                setDeleteOrderId(null);
-                toast({ title: "Order cancelled", variant: "destructive" });
-                queryClient.invalidateQueries({ queryKey: ["orders"] });
-              }}
-            >
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

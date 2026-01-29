@@ -6,11 +6,10 @@ const STORAGE_KEY = "ecom-auth-store";
 
 export interface AuthState {
   accessToken: string | null;
-  refreshToken: string | null;
-  expiresAt: number | null;
+  expiresAt: string | null;
   customerId: string | null;
   isAuthenticated: boolean;
-  setTokens: (access: string, refresh: string, expiresAt: number, customerId?: string) => void;
+  setTokens: (access: string, expiresAt: string, customerId?: string) => void;
   setCustomerId: (customerId: string) => void;
   logout: () => void;
   getStoredToken: () => string | null;
@@ -20,14 +19,12 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       accessToken: null,
-      refreshToken: null,
       expiresAt: null,
       customerId: null,
       isAuthenticated: false,
-      setTokens: (access, refresh, expiresAt, customerId) =>
+      setTokens: (access, expiresAt, customerId) =>
         set({
           accessToken: access,
-          refreshToken: refresh,
           expiresAt,
           customerId: customerId ?? get().customerId,
           isAuthenticated: true,
@@ -36,14 +33,13 @@ export const useAuthStore = create<AuthState>()(
       logout: () =>
         set({
           accessToken: null,
-          refreshToken: null,
           expiresAt: null,
           customerId: null,
           isAuthenticated: false,
         }),
       getStoredToken: () => {
         const state = get();
-        if (state.expiresAt && Date.now() >= state.expiresAt - 60_000) {
+        if (state.expiresAt && new Date(state.expiresAt).getTime() <= Date.now()) {
           return null;
         }
         return state.accessToken;

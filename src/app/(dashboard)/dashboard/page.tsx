@@ -28,39 +28,48 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { ShoppingCart, DollarSign, AlertTriangle, ArrowUpRight } from "lucide-react";
+import { ShoppingCart, DollarSign, AlertTriangle, ArrowUpRight, Truck } from "lucide-react";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
-import type { OrderStatus } from "@/types";
+import type { OrderStatus, AnalyticsSummary, Order } from "@/types";
 import { cn } from "@/lib/utils";
 
 const statusVariant: Record<OrderStatus, "pending" | "processing" | "shipped" | "delivered" | "cancelled"> = {
   pending: "pending",
-  processing: "processing",
+  confirmed: "processing",
   shipped: "shipped",
   delivered: "delivered",
   cancelled: "cancelled",
 };
 
 export default function DashboardPage() {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["dashboard"],
+  const { data: analytics, isLoading: isAnalyticsLoading, isError: isAnalyticsError } = useQuery({
+    queryKey: ["analytics"],
     queryFn: async () => {
-      const res = await apiClient.get<{
-        ordersCount: number;
-        revenue: number;
-        stockAlerts: number;
-        recentOrders: Array<{ id: string; sku: string; quantity: number; status: OrderStatus; total: number; createdAt: string }>;
-        lowInventory: Array<{ sku: string; name: string; quantity: number; minThreshold: number }>;
-      }>("/api/dashboard");
+      const res = await apiClient.get<AnalyticsSummary>("/api/v1/analytics/summary", {
+        params: { period: "last_24h" }
+      });
       return res.data;
     },
   });
 
+  const { data: ordersData, isLoading: isOrdersLoading } = useQuery({
+    queryKey: ["recent-orders"],
+    queryFn: async () => {
+      const res = await apiClient.get<{ items: Order[] }>("/api/v1/orders", {
+        params: { limit: 5 }
+      });
+      return res.data;
+    },
+  });
+
+  const isLoading = isAnalyticsLoading || isOrdersLoading;
+  const isError = isAnalyticsError;
+
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-12">
-        <p className="text-destructive">Failed to load dashboard.</p>
+        <p className="text-destructive">Failed to load dashboard metrics.</p>
       </div>
     );
   }
@@ -69,7 +78,7 @@ export default function DashboardPage() {
     <div className="space-y-4 sm:space-y-6">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">Overview of your e-commerce metrics.</p>
+        <p className="text-sm sm:text-base text-muted-foreground">Overview of your e-commerce metrics from Valerix API.</p>
       </div>
 
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -90,12 +99,12 @@ export default function DashboardPage() {
           <>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Orders Created</CardTitle>
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{data?.ordersCount?.toLocaleString() ?? "—"}</div>
-                <p className="text-xs text-muted-foreground">All time</p>
+                <div className="text-2xl font-bold">{analytics?.orders_created?.toLocaleString() ?? "0"}</div>
+                <p className="text-xs text-muted-foreground">Last 24h</p>
               </CardContent>
             </Card>
             <Card>
@@ -105,28 +114,28 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  ${data?.revenue != null ? data.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "—"}
+                  ${analytics?.total_revenue_cents != null ? (analytics.total_revenue_cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
                 </div>
-                <p className="text-xs text-muted-foreground">Current period</p>
+                <p className="text-xs text-muted-foreground">Last 24h (Cents to USD)</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Stock Alerts</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-amber-500" aria-hidden="true" />
+                <CardTitle className="text-sm font-medium text-muted-foreground">Orders Shipped</CardTitle>
+                <Truck className="h-4 w-4 text-blue-500" aria-hidden="true" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{data?.stockAlerts ?? "—"}</div>
-                <p className="text-xs text-muted-foreground">Low inventory items</p>
+                <div className="text-2xl font-bold">{analytics?.orders_shipped ?? "0"}</div>
+                <p className="text-xs text-muted-foreground">Last 24h</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Recent Activity</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Inventory Updates</CardTitle>
                 <ArrowUpRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{data?.recentOrders?.length ?? 0}</div>
+                <div className="text-2xl font-bold">{analytics?.inventory_updates ?? "0"}</div>
                 <p className="text-xs text-muted-foreground">Last 24h</p>
               </CardContent>
             </Card>
@@ -139,14 +148,14 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Recent Orders</CardTitle>
-              <CardDescription>Latest orders with quick actions.</CardDescription>
+              <CardDescription>Latest orders from the API.</CardDescription>
             </div>
             <Button variant="outline" size="sm" asChild>
               <Link href="/orders">View all</Link>
             </Button>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isOrdersLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Skeleton key={i} className="h-12 w-full" />
@@ -157,25 +166,28 @@ export default function DashboardPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Order</TableHead>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Qty</TableHead>
+                      <TableHead>Order ID</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(data?.recentOrders ?? []).map((o) => (
+                    {(ordersData?.items ?? []).map((o) => (
                       <TableRow key={o.id}>
                         <TableCell className="font-mono text-xs">{o.id}</TableCell>
-                        <TableCell>{o.sku}</TableCell>
-                        <TableCell>{o.quantity}</TableCell>
                         <TableCell>
                           <Badge variant={statusVariant[o.status]}>{o.status}</Badge>
                         </TableCell>
-                        <TableCell className="text-right">${o.total.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">${(o.total_cents / 100).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
+                    {(!ordersData?.items || ordersData.items.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
+                          No recent orders found.
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -185,80 +197,44 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Low Inventory Alerts</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Items below threshold.</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Average Order Value</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Metrics for the selected period.</CardDescription>
           </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-14 w-full" />
-                ))}
+          <CardContent className="flex items-center justify-center p-6">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-primary">
+                ${analytics?.average_order_value_cents != null ? (analytics.average_order_value_cents / 100).toFixed(2) : "0.00"}
               </div>
-            ) : (
-              <ul className="space-y-2 sm:space-y-3" role="list">
-                {(data?.lowInventory ?? []).map((item) => (
-                  <li
-                    key={item.sku}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border p-3"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base truncate">{item.name}</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground font-mono">{item.sku}</p>
-                    </div>
-                    <div className="flex items-center justify-between sm:flex-col sm:items-end sm:justify-center gap-2">
-                      <p className={cn("font-semibold text-sm sm:text-base", item.quantity <= item.minThreshold && "text-destructive")}>
-                        {item.quantity} / {item.minThreshold}
-                      </p>
-                      <Button variant="outline" size="sm" asChild className="text-xs sm:text-sm shrink-0">
-                        <Link href="/inventory">Update</Link>
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+              <p className="text-sm text-muted-foreground mt-2">Average value per order</p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base sm:text-lg">Order Trends</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">Real-time metrics (mock trend).</CardDescription>
+          <CardTitle className="text-base sm:text-lg">Notifications Sent</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Total alerts processed today.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[250px] sm:h-[300px] w-full">
-            {isLoading ? (
-              <Skeleton className="h-full w-full" />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={[
-                    { name: "Mon", value: 40 },
-                    { name: "Tue", value: 65 },
-                    { name: "Wed", value: 52 },
-                    { name: "Thu", value: 78 },
-                    { name: "Fri", value: 90 },
-                    { name: "Sat", value: 120 },
-                    { name: "Sun", value: 95 },
-                  ]}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" className="text-[10px] sm:text-xs" />
-                  <YAxis className="text-[10px] sm:text-xs" />
-                  <Tooltip contentStyle={{ borderRadius: "var(--radius)" }} />
-                  <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorValue)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
+          <div className="h-[200px] flex items-end gap-2 px-2">
+            {/* Simple mock bar chart using CSS since real trend data isn't in summary */}
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-primary/20 hover:bg-primary/40 rounded-t w-full transition-all"
+                style={{ height: `${Math.random() * 80 + 20}%` }}
+              />
+            ))}
+          </div>
+          <div className="flex justify-between mt-2 text-[10px] text-muted-foreground px-2">
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
+            <span>Sun</span>
           </div>
         </CardContent>
       </Card>

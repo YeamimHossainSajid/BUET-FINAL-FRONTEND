@@ -38,7 +38,7 @@ export function Sidebar() {
         <div className="flex h-14 items-center border-b px-3">
           {!collapsed && (
             <Link href="/dashboard" className="font-semibold text-primary">
-              E-Commerce
+              Valerix
             </Link>
           )}
           <Button
